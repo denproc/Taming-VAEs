@@ -17,29 +17,14 @@ class CIFAR10(torchvision.datasets.CIFAR10):
         
     def __getitem__(self, index):
         return super().__getitem__(index)[0]
-    
-class CELEBA(Dataset):
-    def __init__(self, root='./data/celeba/img_align_celeba/', transform=None):
-        super().__init__()
-        self.transform = transform
-        self.len = 10000
-        try:
-            files = os.listdir(root)
-        except OSError():
-            raise OSError('Specify the directory with CELEBA dataset')
-        files.sort()
-        files = files[:self.len]
-        self.data = []
-        for file in files:
-            self.data.append(np.asarray(PIL.Image.open(root+file))[None,...])
-        self.data = np.concatenate(self.data)
-        print (self.data.shape)
-        
-    def __len__(self):
-        return self.len
+
+class CELEBA(torchvision.datasets.ImageFolder):
+    def __init__(self, root='./data/celeba/', train=True, transform=None):   
+        if train:
+            root = root + 'train'
+        else:
+            root = root + 'test'
+        super().__init__(root=root, transform=transform)
     
     def __getitem__(self, index):
-        if self.transform:
-            return self.transform(self.data[index])
-        else:
-            return self.data[index]
+        return super().__getitem__(index)[0]

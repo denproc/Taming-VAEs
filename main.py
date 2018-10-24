@@ -15,7 +15,7 @@ if (__name__=='__main__'):
     elif (args.dataset.lower() == 'cifar10'):
         data_set = datasets.CIFAR10('./data/cifar10/', download=True, transform=torchvision.transforms.ToTensor())
     elif (args.dataset.lower() == 'celeba'):
-        data_set = datasets.CELEBA('./data/celeba/img_align_celeba/', transform=torchvision.transforms.ToTensor())
+        data_set = datasets.CELEBA('./data/celeba/', transform=torchvision.transforms.ToTensor())
         
     loader = torch.utils.data.DataLoader(data_set, batch_size=batch_size, shuffle=True, drop_last=True)
     for batch in loader:
