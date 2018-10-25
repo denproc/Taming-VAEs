@@ -5,34 +5,39 @@ import torch.optim as optim
 import torch.utils.data as data_utils
 import torch
 
+dims = [6075, 1024, 512]
+dim_latent = 100
+
 class VAE(nn.Module):
-    def __init__(self, dim_init=6075, dim_middle=1024, dim_latent=100):
+    def __init__(self, dims = dims, dim_latent=dim_latent):
         super(VAE, self).__init__()
         
-        self.encode = nn.Sequential(
-            nn.Linear(dim_init, dim_middle),
-            nn.ReLU(),
-            nn.Linear(dim_middle, dim_middle),
-            nn.ReLU()
-        )
-        
-        self.latent_mu = nn.Linear(dim_middle, dim_latent)
-        self.latent_logsigma = nn.Linear(dim_middle, dim_latent)
-        
-        self.decode = nn.Sequential(
-            nn.Linear(dim_latent, dim_middle),
-            nn.ReLU(),
-            nn.Linear(dim_middle, dim_middle),
-            nn.ReLU()
-        )
+        self.encode = nn.Sequential()
+        curr_l = dims[0]
+        for i, next_layer in enumerate(dims[1:]):
+            self.encode.add_module('Linear_{}'.format(i+1), nn.Linear(curr_l, next_layer))
+            self.encode.add_module('ReLU_{}'.format(i+1),nn.ReLU())
+            curr_l = next_layer
+            
+        self.decode = nn.Sequential()
+        curr_l = dim_latent
+        for i, next_layer in enumerate(dims[:0:-1]):
+            self.decode.add_module('Linear_{}'.format(i+1), nn.Linear(curr_l, next_layer))
+            self.decode.add_module('ReLU_{}'.format(i+1), nn.ReLU())
+            curr_l = next_layer
 
+        
+        self.latent_mu = nn.Linear(dims[-1], dim_latent)
+        self.latent_logsigma = nn.Linear(dims[-1], dim_latent)
+        
+    
         self.reconstruction_mu = nn.Sequential(
-            nn.Linear(dim_middle, dim_init),
+            nn.Linear(dims[1], dims[0]),
             nn.Sigmoid()
         )
         
         self.reconstruction_logsigma = nn.Sequential(
-            nn.Linear(dim_middle, dim_init),
+            nn.Linear(dims[1], dims[0]),
             nn.Sigmoid()
         )
         
