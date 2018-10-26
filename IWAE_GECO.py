@@ -38,10 +38,10 @@ def IWAE_KL(x, reconstruction_mu, latent_mu, latent_logsigma, z, tol):
 
 def train_geco(model, opt, scheduler, train_loader, valid_loader, 
                lambd_init = torch.FloatTensor([1]), 
-               KL_divergence = IWAE_KL, 
+               KL_term = IWAE_KL, 
                constraint_f = RE, num_epochs=20, 
                lbd_step = 100, alpha = 0.99, visualize = True, 
-               device = 'cpu', tol = 1):
+               device = 'cpu', tol = 1, flag=False):
     
     model.to(device)
     
@@ -66,9 +66,8 @@ def train_geco(model, opt, scheduler, train_loader, valid_loader,
             
             reconstruction_mu, reconstruction_logsigma, latent_mu, latent_logsigma, z = model(X_batch)
             constraint = torch.mean(constraint_f(X_batch, reconstruction_mu[:,0], tol = tol))
-            KL_div = KL_divergence(X_batch, reconstruction_mu, latent_mu, latent_logsigma, z, tol)
+            KL_div = KL_term(X_batch, reconstruction_mu, latent_mu, latent_logsigma, z, tol)
             loss = KL_div + lambd * constraint
-#            loss.backward(retain_graph = True)
             loss.backward()
             opt.step()
             opt.zero_grad()
@@ -96,14 +95,16 @@ def train_geco(model, opt, scheduler, train_loader, valid_loader,
         with torch.no_grad():
             for X_batch in valid_loader:
                 X_batch = X_batch.reshape(train_loader.batch_size, -1).to(device)
-                reconstruction_mu, reconstruction_logsigma, latent_mu, latent_logsigma, _ = model(X_batch)
+                reconstruction_mu, reconstruction_logsigma, latent_mu, latent_logsigma, z = model(X_batch)
 
                 constraint = torch.mean(constraint_f(X_batch, reconstruction_mu[:,0], tol = tol))
-                KL_div = KL_divergence(X_batch, reconstruction_mu, latent_mu, latent_logsigma, z, tol)
-
+                KL_div = KL_term(X_batch, reconstruction_mu, latent_mu, latent_logsigma, z, tol)
+                loss = KL_div + lambd * constraint
+                print (loss)
                 valid_hist['loss'][-1] += loss.data.cpu().numpy()[0]/len(valid_loader)
                 valid_hist['reconstr'][-1] += constraint.data.cpu().numpy()/len(valid_loader)
                 valid_hist['KL'][-1] += KL_div.data.cpu().numpy()/len(valid_loader)
+        
         
 
         # update lr
@@ -117,6 +118,8 @@ def train_geco(model, opt, scheduler, train_loader, valid_loader,
         # visualization of training
         if visualize:
             display.clear_output(wait=True)
+            if flag:
+                print('KL: {}'.format(valid_hist['KL'][-1]))
             fig, ax = plt.subplots(ncols=4, nrows=1, figsize=(16, 4))
 
             ax[0].plot(train_hist['loss'], label = 'train')
